@@ -24,7 +24,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// getitemCmd represents the getitem command
+// getitemCmd represents the "get item" command
 var getitemCmd = &cobra.Command{
 	Use:   "item",
 	Short: "Get item",
@@ -32,8 +32,13 @@ var getitemCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 
-		oh := openhab.NewClient()
-		item := oh.GetItem(args[0])
+		oh := openhab.NewClient(Config.Host, Config.Port)
+		item, err := oh.GetItem(args[0])
+
+		if err != nil {
+			fmt.Println("error:", err)
+			os.Exit(1)
+		}
 
 		w := new(tabwriter.Writer)
 		w.Init(os.Stdout, 8, 8, 0, '\t', 0)
@@ -47,15 +52,4 @@ var getitemCmd = &cobra.Command{
 
 func init() {
 	getCmd.AddCommand(getitemCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// getitemCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// getitemCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
 }

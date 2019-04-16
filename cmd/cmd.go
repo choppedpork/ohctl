@@ -15,34 +15,31 @@
 package cmd
 
 import (
+	"fmt"
+	"os"
 	"strings"
 
 	"github.com/choppedpork/ohctl/openhab"
 	"github.com/spf13/cobra"
 )
 
-// cmdCmd represents the cmd command
 var cmdCmd = &cobra.Command{
 	Use:   "cmd",
 	Short: "Sends a command to an item.",
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		oh := openhab.NewClient()
-		oh.Cmd(args[0], strings.ToUpper(args[1]))
+
+		oh := openhab.NewClient(Config.Host, Config.Port)
+		err := oh.Cmd(args[0], strings.ToUpper(args[1]))
+
+		if err != nil {
+			fmt.Println("error:", err)
+			os.Exit(1)
+		}
+
 	},
 }
 
 func init() {
 	RootCmd.AddCommand(cmdCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// cmdCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// cmdCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
 }

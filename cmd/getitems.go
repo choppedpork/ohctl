@@ -33,10 +33,14 @@ var getitemsCmd = &cobra.Command{
 	Short: "List all items",
 	Long:  `List all items in openhab`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// fmt.Println("get items called")
 
-		oh := openhab.NewClient()
-		items := oh.GetItems()
+		oh := openhab.NewClient(Config.Host, Config.Port)
+		items, err := oh.GetItems()
+
+		if err != nil {
+			fmt.Println("error retrieving items:", err)
+			os.Exit(1)
+		}
 
 		if quiet {
 			for _, item := range items {
@@ -61,15 +65,4 @@ var getitemsCmd = &cobra.Command{
 func init() {
 	getitemsCmd.Flags().BoolVarP(&quiet, "quiet", "q", false, "quiet mode - prints item names only")
 	getCmd.AddCommand(getitemsCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// getitemsCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	getitemsCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
 }

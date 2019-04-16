@@ -2,9 +2,10 @@ package openhab
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -43,50 +44,86 @@ type openhabItem struct {
 }
 
 type openhabClient struct {
+	Host string
+	Port uint16
 }
 
-func NewClient() *openhabClient {
-	return &openhabClient{}
+func NewClient(host string, port uint16) *openhabClient {
+	return &openhabClient{Host: host, Port: port}
 }
 
-func (c *openhabClient) GetItems() []openhabItem {
+func (c *openhabClient) GetItems() ([]openhabItem, error) {
 
-	resp, _ := http.Get("http://openhab/rest/items?recursive=false") // lol error handling
+	resp, err := http.Get("http://" + c.Host + ":" + strconv.Itoa(int(c.Port)) + "/rest/items?recursive=false") // lol error handling
+
+	if err != nil {
+		return nil, err
+	}
 
 	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body) // more classy error handling
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return nil, err
+	}
 
 	var items []openhabItem
-	_ = json.Unmarshal(body, &items)
+	err = json.Unmarshal(body, &items)
 
-	return items
+	if err != nil {
+		return nil, err
+	}
+
+	return items, nil
 
 }
 
-func (c *openhabClient) GetItem(itemName string) openhabItem {
+func (c *openhabClient) GetItem(itemName string) (openhabItem, error) {
 
-	resp, _ := http.Get("http://openhab/rest/items/" + itemName) // lol error handling
+	resp, err := http.Get("http://" + c.Host + ":" + strconv.Itoa(int(c.Port)) + "/rest/items/" + itemName)
+
+	if err != nil {
+		return openhabItem{}, err
+	}
 
 	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body) // more classy error handling
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return openhabItem{}, err
+	}
+
+	if resp.StatusCode == 404 {
+		return openhabItem{}, errors.New("error: item " + itemName + " doesn't exist")
+	}
 
 	var item openhabItem
-	_ = json.Unmarshal(body, &item)
+	err = json.Unmarshal(body, &item)
 
-	return item
+	if err != nil {
+		return openhabItem{}, err
+	}
+
+	return item, nil
 
 }
 
-func (c *openhabClient) Cmd(item string, cmd string) {
+func (c *openhabClient) Cmd(item string, cmd string) error {
 
-	resp, _ := http.Post("http://openhab/rest/items/"+item, "text/plain", strings.NewReader(cmd)) // more classy error handling
+	resp, err := http.Post("http://"+c.Host+":"+strconv.Itoa(int(c.Port))+"/rest/items/"+item, "text/plain", strings.NewReader(cmd)) // more classy error handling
+
+	if err != nil {
+		return err
+	}
+
+	defer resp.Body.Close()
 
 	switch resp.StatusCode {
-	case 200:
-		fmt.Println("yay")
 	case 400:
-		fmt.Printf("error: invalid command: %s\n", cmd)
+		return errors.New("error: invalid command: " + cmd)
 	case 404:
-		fmt.Printf("error: item %s doesn't exist\n", item)
+		return errors.New("error: item " + item + " doesn't exist")
 	}
+
+	return nil
 }

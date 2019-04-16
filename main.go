@@ -14,7 +14,9 @@
 
 package main
 
-import "github.com/choppedpork/ohctl/cmd"
+import (
+	"github.com/choppedpork/ohctl/cmd"
+)
 
 func main() {
 	cmd.Execute()
