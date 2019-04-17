@@ -2,7 +2,7 @@
 
 Because sometimes you need to turn the lights off and the volume down from the command line...
 
-[![Travis build status][travis]](https://travis-ci.org/choppedpork/ohctl) [![releases/latest][release]](releases/latest)
+[![Travis build status][travis]](https://travis-ci.org/choppedpork/ohctl) [![releases/latest][release]](https://github.com/choppedpork/ohctl/releases/latest)
 
 ## Install
 
@@ -12,7 +12,7 @@ Because sometimes you need to turn the lights off and the volume down from the c
 
 ### Linux
 
-Download latest [release](releases/latest) and unpack somewhere into your `$PATH`.
+Download latest [release](https://github.com/choppedpork/ohctl/releases/latest) and unpack somewhere into your `$PATH`.
 
 ## Setup
 
