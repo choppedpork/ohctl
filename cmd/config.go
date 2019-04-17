@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var Config config
+var Config = config{Host: "localhost", Port: 80}
 
 type config struct {
 	Host string `mapstructure:"host"`
