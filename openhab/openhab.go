@@ -41,6 +41,8 @@ type openhabItem struct {
 	StateDescription interface{} `json:"stateDescription"`
 	Tags             []string    `json:"tags"`
 	Type             string      `json:"type"`
+	// Category         string      `json:"category"`
+
 }
 
 type openhabClient struct {
@@ -83,7 +85,7 @@ func (c *openhabClient) GetItem(itemName string) (openhabItem, error) {
 	resp, err := http.Get("http://" + c.Host + ":" + strconv.Itoa(int(c.Port)) + "/rest/items/" + itemName)
 
 	if err != nil {
-		return openhabItem{}, err
+		return openhabItem{}, errors.New("fetching item: " + err.Error())
 	}
 
 	defer resp.Body.Close()
@@ -94,14 +96,14 @@ func (c *openhabClient) GetItem(itemName string) (openhabItem, error) {
 	}
 
 	if resp.StatusCode == 404 {
-		return openhabItem{}, errors.New("error: item " + itemName + " doesn't exist")
+		return openhabItem{}, errors.New("item " + itemName + " doesn't exist")
 	}
 
 	var item openhabItem
 	err = json.Unmarshal(body, &item)
 
 	if err != nil {
-		return openhabItem{}, err
+		return openhabItem{}, errors.New("coulnd't unmarshal: " + err.Error() + " (not openhab?)")
 	}
 
 	return item, nil
