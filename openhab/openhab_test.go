@@ -1,10 +1,12 @@
-package openhab
+package openhab_test
 
 import (
 	"bytes"
 	"net/http"
 	"reflect"
 	"testing"
+
+	"github.com/choppedpork/ohctl/openhab"
 
 	"github.com/go-test/deep"
 	"github.com/jarcoal/httpmock"
@@ -25,14 +27,14 @@ func Test_Client_GetItem(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    Item
+		want    openhab.Item
 		wantErr bool
 	}{
 		{
 			"success",
 			fields{"meow", 12345},
 			args{itemName: "cat"},
-			Item{
+			openhab.Item{
 				Link:       "http://meow:12345/rest/items/cat",
 				State:      "16",
 				Type:       "Dimmer",
@@ -43,9 +45,9 @@ func Test_Client_GetItem(t *testing.T) {
 			},
 			false,
 		},
-		{"item doesn't exist", fields{"meow", 12345}, args{itemName: "dog"}, Item{}, true},
-		{"non-json response", fields{"meow", 12345}, args{itemName: "huh"}, Item{}, true},
-		{"bad host", fields{}, args{itemName: "please"}, Item{}, true},
+		{"item doesn't exist", fields{"meow", 12345}, args{itemName: "dog"}, openhab.Item{}, true},
+		{"non-json response", fields{"meow", 12345}, args{itemName: "huh"}, openhab.Item{}, true},
+		{"bad host", fields{}, args{itemName: "please"}, openhab.Item{}, true},
 	}
 
 	httpmock.Activate()
@@ -59,7 +61,7 @@ func Test_Client_GetItem(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &Client{
+			c := &openhab.Client{
 				Host: tt.fields.Host,
 				Port: tt.fields.Port,
 			}
@@ -89,13 +91,13 @@ func Test_Client_GetItems(t *testing.T) {
 	tests := []struct {
 		name    string
 		fields  fields
-		want    []Item
+		want    []openhab.Item
 		wantErr bool
 	}{
 		{
 			"success",
 			fields{"meow", 12345},
-			[]Item{{
+			[]openhab.Item{{
 				Link:       "http://meow:12345/rest/items/cat",
 				State:      "16",
 				Type:       "Dimmer",
@@ -119,7 +121,7 @@ func Test_Client_GetItems(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &Client{
+			c := &openhab.Client{
 				Host: tt.fields.Host,
 				Port: tt.fields.Port,
 			}
@@ -173,7 +175,7 @@ func Test_Client_Cmd(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &Client{
+			c := &openhab.Client{
 				Host: tt.fields.Host,
 				Port: tt.fields.Port,
 			}
@@ -192,13 +194,13 @@ func TestNewClient(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want *Client
+		want *openhab.Client
 	}{
-		{"yay", args{"meow", 12345}, &Client{"meow", 12345}},
+		{"yay", args{"meow", 12345}, &openhab.Client{"meow", 12345}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewClient(tt.args.host, tt.args.port); !reflect.DeepEqual(got, tt.want) {
+			if got := openhab.NewClient(tt.args.host, tt.args.port); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewClient() = %v, want %v", got, tt.want)
 			}
 		})
