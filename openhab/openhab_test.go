@@ -160,7 +160,7 @@ func Test_openhabClient_Cmd(t *testing.T) {
 			if cmd.String() == "purr" {
 				return httpmock.NewStringResponse(200, ""), nil
 			} else {
-				return httpmock.NewStringResponse(404, ""), nil
+				return httpmock.NewStringResponse(400, ""), nil
 			}
 		})
 
