@@ -1,6 +1,8 @@
 package openhab
 
 import (
+	"bytes"
+	"net/http"
 	"testing"
 
 	"github.com/go-test/deep"
@@ -26,8 +28,8 @@ func Test_openhabClient_GetItem(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			"good cat",
-			fields{Host: "meow", Port: 12345},
+			"success",
+			fields{"meow", 12345},
 			args{itemName: "cat"},
 			openhabItem{
 				Link:       "http://meow:12345/rest/items/cat",
@@ -40,8 +42,8 @@ func Test_openhabClient_GetItem(t *testing.T) {
 			},
 			false,
 		},
-		{"not a cat", fields{Host: "meow", Port: 12345}, args{itemName: "dog"}, openhabItem{}, true},
-		{"what cat", fields{Host: "meow", Port: 12345}, args{itemName: "huh"}, openhabItem{}, true},
+		{"item doesn't exist", fields{"meow", 12345}, args{itemName: "dog"}, openhabItem{}, true},
+		{"non-json response", fields{"meow", 12345}, args{itemName: "huh"}, openhabItem{}, true},
 		{"bad host", fields{}, args{itemName: "please"}, openhabItem{}, true},
 	}
 
@@ -90,8 +92,8 @@ func Test_openhabClient_GetItems(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			"good cat",
-			fields{Host: "meow", Port: 12345},
+			"success",
+			fields{"meow", 12345},
 			[]openhabItem{{
 				Link:       "http://meow:12345/rest/items/cat",
 				State:      "16",
@@ -144,15 +146,26 @@ func Test_openhabClient_Cmd(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{"success", fields{"meow", 12345}, args{"cat", "purr"}, false},
+		{"invalid command", fields{"meow", 12345}, args{"cat", "bark"}, true},
+		{"item doesn't exist", fields{"meow", 12345}, args{"dog", "purr"}, true},
+		{"bad host", fields{}, args{"cat", "purr"}, true},
 	}
 
-	httpmock.RegisterResponder("GET", "http://meow:12345/rest/items/cat",
-		httpmock.NewStringResponder(200, `{"link":"http://meow:12345/rest/items/cat","state":"16","editable":false,"type":"Dimmer","name":"cat","label":"cat","category":"soundvolume","tags":[],"groupNames":[]}`))
-	httpmock.RegisterResponder("GET", "http://meow:12345/rest/items/dog",
+	httpmock.RegisterResponder("POST", "http://meow:12345/rest/items/cat",
+		func(req *http.Request) (*http.Response, error) {
+			cmd := new(bytes.Buffer)
+			cmd.ReadFrom(req.Body)
+
+			if cmd.String() == "purr" {
+				return httpmock.NewStringResponse(200, ""), nil
+			} else {
+				return httpmock.NewStringResponse(404, ""), nil
+			}
+		})
+
+	httpmock.RegisterResponder("POST", "http://meow:12345/rest/items/dog",
 		httpmock.NewStringResponder(404, ""))
-	httpmock.RegisterResponder("GET", "http://meow:12345/rest/items/huh",
-		httpmock.NewStringResponder(200, "what is this i can't even"))
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
