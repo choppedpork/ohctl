@@ -26,7 +26,7 @@ import (
 
 // getitemCmd represents the "get item" command
 var getitemCmd = &cobra.Command{
-	Use:   "item",
+	Use:   "item <item>",
 	Short: "Get item",
 	Long:  `Gets specific item in openhab`,
 	Args:  cobra.ExactArgs(1),

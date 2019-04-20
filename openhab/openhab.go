@@ -9,7 +9,8 @@ import (
 	"strings"
 )
 
-type openhabItem struct {
+// Item is a representation of an Openhab item
+type Item struct {
 	// editable: false
 	// groupNames: []
 	// label: Mode
@@ -45,18 +46,21 @@ type openhabItem struct {
 
 }
 
-type openhabClient struct {
+// Client represents a client for a Openhab server
+type Client struct {
 	Host string
 	Port uint16
 }
 
-func NewClient(host string, port uint16) *openhabClient {
-	return &openhabClient{Host: host, Port: port}
+// NewClient creates a new Openhab client instance
+func NewClient(host string, port uint16) *Client {
+	return &Client{Host: host, Port: port}
 }
 
-func (c *openhabClient) GetItems() ([]openhabItem, error) {
+// GetItems retrieves a list of all items
+func (c *Client) GetItems() ([]Item, error) {
 
-	resp, err := http.Get("http://" + c.Host + ":" + strconv.Itoa(int(c.Port)) + "/rest/items?recursive=false") // lol error handling
+	resp, err := http.Get("http://" + c.Host + ":" + strconv.Itoa(int(c.Port)) + "/rest/items?recursive=false")
 
 	if err != nil {
 		return nil, err
@@ -69,7 +73,7 @@ func (c *openhabClient) GetItems() ([]openhabItem, error) {
 		return nil, err
 	}
 
-	var items []openhabItem
+	var items []Item
 	err = json.Unmarshal(body, &items)
 
 	if err != nil {
@@ -80,37 +84,39 @@ func (c *openhabClient) GetItems() ([]openhabItem, error) {
 
 }
 
-func (c *openhabClient) GetItem(itemName string) (openhabItem, error) {
+// GetItem retrieves an item by name
+func (c *Client) GetItem(itemName string) (Item, error) {
 
 	resp, err := http.Get("http://" + c.Host + ":" + strconv.Itoa(int(c.Port)) + "/rest/items/" + itemName)
 
 	if err != nil {
-		return openhabItem{}, errors.New("fetching item: " + err.Error())
+		return Item{}, errors.New("fetching item: " + err.Error())
 	}
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		return openhabItem{}, err
+		return Item{}, err
 	}
 
 	if resp.StatusCode == 404 {
-		return openhabItem{}, errors.New("item " + itemName + " doesn't exist")
+		return Item{}, errors.New("item " + itemName + " doesn't exist")
 	}
 
-	var item openhabItem
+	var item Item
 	err = json.Unmarshal(body, &item)
 
 	if err != nil {
-		return openhabItem{}, errors.New("coulnd't unmarshal: " + err.Error() + " (not openhab?)")
+		return Item{}, errors.New("coulnd't unmarshal: " + err.Error() + " (not openhab?)")
 	}
 
 	return item, nil
 
 }
 
-func (c *openhabClient) Cmd(item string, cmd string) error {
+// Cmd executes a command on an item
+func (c *Client) Cmd(item string, cmd string) error {
 
 	resp, err := http.Post("http://"+c.Host+":"+strconv.Itoa(int(c.Port))+"/rest/items/"+item, "text/plain", strings.NewReader(cmd)) // more classy error handling
 

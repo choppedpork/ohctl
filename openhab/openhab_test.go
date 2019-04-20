@@ -3,13 +3,14 @@ package openhab
 import (
 	"bytes"
 	"net/http"
+	"reflect"
 	"testing"
 
 	"github.com/go-test/deep"
 	"github.com/jarcoal/httpmock"
 )
 
-func Test_openhabClient_GetItem(t *testing.T) {
+func Test_Client_GetItem(t *testing.T) {
 
 	type fields struct {
 		Host string
@@ -24,14 +25,14 @@ func Test_openhabClient_GetItem(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    openhabItem
+		want    Item
 		wantErr bool
 	}{
 		{
 			"success",
 			fields{"meow", 12345},
 			args{itemName: "cat"},
-			openhabItem{
+			Item{
 				Link:       "http://meow:12345/rest/items/cat",
 				State:      "16",
 				Type:       "Dimmer",
@@ -42,9 +43,9 @@ func Test_openhabClient_GetItem(t *testing.T) {
 			},
 			false,
 		},
-		{"item doesn't exist", fields{"meow", 12345}, args{itemName: "dog"}, openhabItem{}, true},
-		{"non-json response", fields{"meow", 12345}, args{itemName: "huh"}, openhabItem{}, true},
-		{"bad host", fields{}, args{itemName: "please"}, openhabItem{}, true},
+		{"item doesn't exist", fields{"meow", 12345}, args{itemName: "dog"}, Item{}, true},
+		{"non-json response", fields{"meow", 12345}, args{itemName: "huh"}, Item{}, true},
+		{"bad host", fields{}, args{itemName: "please"}, Item{}, true},
 	}
 
 	httpmock.Activate()
@@ -58,23 +59,23 @@ func Test_openhabClient_GetItem(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &openhabClient{
+			c := &Client{
 				Host: tt.fields.Host,
 				Port: tt.fields.Port,
 			}
 			got, err := c.GetItem(tt.args.itemName)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("openhabClient.GetItem() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Client.GetItem() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if diff := deep.Equal(got, tt.want); diff != nil {
-				t.Errorf("openhabClient.GetItem() = %v, want %v, difference is %v", got, tt.want, diff)
+				t.Errorf("Client.GetItem() = %v, want %v, difference is %v", got, tt.want, diff)
 			}
 		})
 	}
 }
 
-func Test_openhabClient_GetItems(t *testing.T) {
+func Test_Client_GetItems(t *testing.T) {
 
 	type fields struct {
 		Host string
@@ -88,13 +89,13 @@ func Test_openhabClient_GetItems(t *testing.T) {
 	tests := []struct {
 		name    string
 		fields  fields
-		want    []openhabItem
+		want    []Item
 		wantErr bool
 	}{
 		{
 			"success",
 			fields{"meow", 12345},
-			[]openhabItem{{
+			[]Item{{
 				Link:       "http://meow:12345/rest/items/cat",
 				State:      "16",
 				Type:       "Dimmer",
@@ -105,6 +106,7 @@ func Test_openhabClient_GetItems(t *testing.T) {
 			}},
 			false,
 		},
+		{"bad response", fields{"meow", 123}, nil, true},
 		{"bad host", fields{}, nil, true},
 	}
 
@@ -112,26 +114,28 @@ func Test_openhabClient_GetItems(t *testing.T) {
 
 	httpmock.RegisterResponder("GET", "http://meow:12345/rest/items?recursive=false",
 		httpmock.NewStringResponder(200, `[{"link":"http://meow:12345/rest/items/cat","state":"16","editable":false,"type":"Dimmer","name":"cat","label":"cat","category":"soundvolume","tags":[],"groupNames":[]}]`))
+	httpmock.RegisterResponder("GET", "http://meow:123/rest/items?recursive=false",
+		httpmock.NewStringResponder(200, "hi i am random text"))
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &openhabClient{
+			c := &Client{
 				Host: tt.fields.Host,
 				Port: tt.fields.Port,
 			}
 			got, err := c.GetItems()
 			if (err != nil) != tt.wantErr {
-				t.Errorf("openhabClient.GetItem() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Client.GetItem() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if diff := deep.Equal(got, tt.want); diff != nil {
-				t.Errorf("openhabClient.GetItem() = %v, want %v, difference is %v", got, tt.want, diff)
+				t.Errorf("Client.GetItem() = %v, want %v, difference is %v", got, tt.want, diff)
 			}
 		})
 	}
 }
 
-func Test_openhabClient_Cmd(t *testing.T) {
+func Test_Client_Cmd(t *testing.T) {
 	type fields struct {
 		Host string
 		Port uint16
@@ -159,9 +163,9 @@ func Test_openhabClient_Cmd(t *testing.T) {
 
 			if cmd.String() == "purr" {
 				return httpmock.NewStringResponse(200, ""), nil
-			} else {
-				return httpmock.NewStringResponse(400, ""), nil
 			}
+
+			return httpmock.NewStringResponse(400, ""), nil
 		})
 
 	httpmock.RegisterResponder("POST", "http://meow:12345/rest/items/dog",
@@ -169,12 +173,33 @@ func Test_openhabClient_Cmd(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &openhabClient{
+			c := &Client{
 				Host: tt.fields.Host,
 				Port: tt.fields.Port,
 			}
 			if err := c.Cmd(tt.args.item, tt.args.cmd); (err != nil) != tt.wantErr {
-				t.Errorf("openhabClient.Cmd() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Client.Cmd() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestNewClient(t *testing.T) {
+	type args struct {
+		host string
+		port uint16
+	}
+	tests := []struct {
+		name string
+		args args
+		want *Client
+	}{
+		{"yay", args{"meow", 12345}, &Client{"meow", 12345}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := NewClient(tt.args.host, tt.args.port); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewClient() = %v, want %v", got, tt.want)
 			}
 		})
 	}
